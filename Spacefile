@@ -1,0 +1,12 @@
+# Spacefile Docs: https://go.deta.dev/docs/spacefile/v0
+v: 0
+app_name: "redir"
+icon: "./icon.png"
+micros:
+  - name: redir
+    src: .
+    engine: nodejs16
+    run: node index.js
+    primary: true
+    public_routes:
+      - "/l/*"
