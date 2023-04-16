@@ -7,6 +7,9 @@ micros:
     src: .
     engine: nodejs16
     run: node index.js
+    dev: npm run dev
     primary: true
+    presets:
+      api_keys: true
     public_routes:
-      - "/l/*"
+      - /(?!(dashboard|list))*

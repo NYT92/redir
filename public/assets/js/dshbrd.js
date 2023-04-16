@@ -37,15 +37,39 @@ formData.addEventListener("submit", (e) => {
   })
     .then((res) => res.json())
     .then((data) => {
-      const div = document.createElement("div");
-      div.innerHTML = `
+      if (data.status === 400) {
+        const div = document.createElement("div");
+        div.innerHTML = `
+        <div class="alert alert-danger alert-dismissible" role="alert">
+        <button class="btn-close" type="button" data-bs-dismiss="alert"
+        aria-label="Close"></button>
+        <span>
+        <strong>Error :</strong> Bad request..
+        </span>
+        </div>`;
+        document.querySelector("#created_link").appendChild(div);
+      } else {
+        const div = document.createElement("div");
+        div.innerHTML = `
       <div class="alert alert-success alert-dismissible" role="alert">
       <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
       <span>
-      <strong>Success :</strong> Here is your link '<a href="${new URL(window.location.href).origin + '/l' + new URL(data.short_link).pathname}" target="_blank">${new URL(window.location.href).origin + '/l' + new URL(data.short_link).pathname}</a>'.
+      <strong>Success :</strong> Here is your link '<a href="${data.short_link}" target="_blank">${data.short_link}</a>'.
       </span>
       </div>`;
-      document.querySelector('#newlink').appendChild(div);
+        document.querySelector("#created_link").appendChild(div);
+      }
     })
-    .catch((err) => console.error(err));
+    .catch((err) => {
+      const div = document.createElement("div");
+      div.innerHTML = `
+      <div class="alert alert-danger alert-dismissible" role="alert">
+      <button class="btn-close" type="button" data-bs-dismiss="alert"
+      aria-label="Close"></button>
+      <span>
+      <strong>Error :</strong> ${err.message}
+      </span>
+      </div>`;
+      document.querySelector("#created_link").appendChild(div);
+    });
 });

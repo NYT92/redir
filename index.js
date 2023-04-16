@@ -1,18 +1,18 @@
 import express, { json } from "express";
 import { Base } from "deta";
 import { Validator as _Validator } from "jsonschema";
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from "path";
+import { fileURLToPath } from "url";
 import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
+const notallowed = ["dashboard", "list"];
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 app.use((req, res, next) => {
   res.setHeader("cache-control", "maxage=3600, immutable");
   next();
@@ -29,26 +29,23 @@ app.use(cors());
 app.use(json());
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.redirect("/dashboard");
 });
 
-app.get("/api/list", async (req, res) => {
-  const limit = req.query.l || 5;
-  const query = req.query.q;
-  const db = Base("shortlnk_db");
-  const item = await db.fetch(query, limit);
-  res.status(200).json(item);
+app.get("/dashboard", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-app.get("/l/:id", async (req, res) => {
+app.get("/list", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "list.html"));
+});
+
+app.get("/:id", async (req, res) => {
   const id = req.params.id;
   const db = Base("shortlnk_db");
   const item = await db.get(id);
-  if (item === null) {
-    return res.json({
-      status: 200,
-      message: "ok",
-    });
+  if (id === undefined || item == null) {
+    res.redirect("/dashboard");
   } else {
     let countURLRedirct = item.stats.clicks;
     countURLRedirct++;
@@ -62,6 +59,14 @@ app.get("/l/:id", async (req, res) => {
     );
     res.redirect(item.original_link);
   }
+});
+
+app.get("/api/list", async (req, res) => {
+  const limit = req.query.l || 5;
+  const query = req.query.q;
+  const db = Base("shortlnk_db");
+  const item = await db.fetch(query, limit);
+  res.status(200).json(item);
 });
 
 app.delete("/api/delete/:id", async (req, res) => {
@@ -106,7 +111,7 @@ app.post("/api/update/:id", async (req, res) => {
     },
     schema
   );
-  if (result.errors.length > 0 || isValidURL(data.original_link) === false) {
+  if (result.errors.length > 0 || isValidURL(data.original_link) === false || notallowed.includes(data.id)) {
     res.status(400).json({
       status: 400,
       message: "bad request",
@@ -170,10 +175,8 @@ app.post("/api/create", async (req, res) => {
     },
     schema
   );
-  const notallowed = ["aslnk", "nyt92", "nsdev", "nscdn"];
-  const urlnotallowed = ["grabify.link"];
 
-  if (result.errors.length > 0 || isValidURL(data.original_link) === false) {
+  if (result.errors.length > 0 || isValidURL(data.original_link) === false || notallowed.includes(resid)) {
     res.status(400).json({
       status: 400,
       message: "bad request",
