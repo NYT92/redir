@@ -1,5 +1,5 @@
 import express, { json } from "express";
-import { Base } from "deta";
+import { Deta } from "deta";
 import { Validator as _Validator } from "jsonschema";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -10,7 +10,14 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const notallowed = ["dashboard", "list"];
+const notallowed = ["dashboard", "list", ".html"];
+
+const deta = Deta(
+  process.env.DETA_COLLECTION_KEY === null
+    ? process.env.DETA_PROJECT_KEY
+    : process.env.DETA_COLLECTION_KEY
+);
+const db = deta.Base("shortlnk_db");
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use((req, res, next) => {
@@ -33,19 +40,18 @@ app.get("/", (req, res) => {
 });
 
 app.get("/dashboard", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+  res.sendFile(path.join(__dirname, "public", "/dashboard/index.html"));
 });
 
-app.get("/list", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "list.html"));
+app.get("/dashboard/list", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "/dashboard/list.html"));
 });
 
 app.get("/:id", async (req, res) => {
   const id = req.params.id;
-  const db = Base("shortlnk_db");
   const item = await db.get(id);
   if (id === undefined || item == null) {
-    res.redirect("/dashboard");
+    res.sendFile(path.join(__dirname, "public", "404.html"));
   } else {
     let countURLRedirct = item.stats.clicks;
     countURLRedirct++;
@@ -64,13 +70,11 @@ app.get("/:id", async (req, res) => {
 app.get("/api/list", async (req, res) => {
   const limit = req.query.l || 5;
   const query = req.query.q;
-  const db = Base("shortlnk_db");
   const item = await db.fetch(query, limit);
   res.status(200).json(item);
 });
 
 app.delete("/api/delete/:id", async (req, res) => {
-  const db = Base("shortlnk_db");
   const item = await db.get(req.params.id);
   if (item) {
     await db.delete(item.id);
@@ -89,7 +93,6 @@ app.delete("/api/delete/:id", async (req, res) => {
 app.post("/api/update/:id", async (req, res) => {
   const data = req.body;
   const idparam = req.params.id;
-  const db = Base("shortlnk_db");
   const valor = _Validator;
   const v = new valor();
   const schema = {
@@ -111,7 +114,13 @@ app.post("/api/update/:id", async (req, res) => {
     },
     schema
   );
-  if (result.errors.length > 0 || isValidURL(data.original_link) === false || notallowed.includes(data.id)) {
+  const ifslash = /\/\w+/;
+  if (
+    result.errors.length > 0 ||
+    isValidURL(data.original_link) === false ||
+    notallowed.includes(data.id) ||
+    ifslash.test(data.id)
+  ) {
     res.status(400).json({
       status: 400,
       message: "bad request",
@@ -122,6 +131,7 @@ app.post("/api/update/:id", async (req, res) => {
         {
           original_link: data.original_link,
           id: data.id,
+          origin_id: data.orgin_id,
         },
         idparam
       );
@@ -141,7 +151,6 @@ app.post("/api/update/:id", async (req, res) => {
 
 app.post("/api/create", async (req, res) => {
   const data = req.body;
-  const db = Base("shortlnk_db");
   const valor = _Validator;
   const v = new valor();
   const schema = {
@@ -159,6 +168,9 @@ app.post("/api/create", async (req, res) => {
           clicks: {
             type: "number",
           },
+          created_at: {
+            type: "string",
+          },
         },
       },
     },
@@ -169,14 +181,20 @@ app.post("/api/create", async (req, res) => {
     {
       original_link: data.original_link,
       id: resid,
+      created_at: new Date().toJSON(),
       stats: {
         clicks: 0,
       },
     },
     schema
   );
-
-  if (result.errors.length > 0 || isValidURL(data.original_link) === false || notallowed.includes(resid)) {
+  const ifslash = /\/\w+/;
+  if (
+    result.errors.length > 0 ||
+    isValidURL(data.original_link) === false ||
+    notallowed.includes(resid) ||
+    ifslash.test(data.id)
+  ) {
     res.status(400).json({
       status: 400,
       message: "bad request",
@@ -186,6 +204,7 @@ app.post("/api/create", async (req, res) => {
       {
         original_link: data.original_link,
         id: resid,
+        created_at: new Date().toJSON(),
         stats: {
           clicks: 0,
         },

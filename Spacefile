@@ -11,5 +11,8 @@ micros:
     primary: true
     presets:
       api_keys: true
+      env:
+        - name: DETA_COLLECTION_KEY
+          description: Connect your collection db to here without messing with the code
     public_routes:
-      - /(?!(dashboard|list))*
+      - /(?!(dashboard|list|api))*
