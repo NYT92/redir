@@ -1,5 +1,10 @@
 <img src="https://github.com/NYT92/redir/blob/main/icon.png?raw=true" alt="loho" width="100" height="100">
 
+# Info
+Deta.space is now sunsetting its product on the 17th of October 2024 and since Redir relies on the Deta base, this app will no longer work and the repo will be archived. Read more on their [website](https://deta.space/sunset).
+
+RIP Deta Space (2022-2024)
+
 # Redir
 A simple short link app made using Deta base.
 
